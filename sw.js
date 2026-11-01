@@ -1,4 +1,4 @@
-const V='paperpair-v152';
+const V='paperpair-v153';
 const SHELL=['./','index.html','paperpair.webmanifest','lib/pdf.min.js','lib/pdf.worker.min.js','lib/pdf-lib.min.js','lib/jszip.min.js','icons/icon-192.png','icons/icon-512.png','icons/apple-180.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('paperpair-')&&k!==V&&k!==V+'-f').map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

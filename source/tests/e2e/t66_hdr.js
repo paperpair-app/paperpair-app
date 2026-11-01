@@ -1,0 +1,12 @@
+const {launch,ok}=require('./base');
+(async()=>{const {b,p,errs}=await launch();
+ const r=await p.evaluate(()=>{const L=(t,y)=>({text:t,y0:y,y1:y+.015,x0:.1,x1:.9});const P=new Map();
+   const hd=["Ind AS 8- Accounting Policies, Changes in Accounting Estimates & Errors","Ind AS 8- Accounting Policies, Changes in Accounting Estimates & Errors","Ind AS 8- Accounting Policies, Changes in Accounting Estimates & Errors","Ind AS 16 Property, Plant and Equipment","Ind AS 16 Property, Plant and Equipment"];
+   hd.forEach((h,i)=>P.set(i+1,{content:[L(h,.05),L(i===0?"Question 6.2":"Solution",.08),L("Retained earnings at the end of the year",.5),L("Page "+(i+1)+" of 300 · CA Final FR Super 75",.95)]}));
+   aiDropHeaders(P);return[...P].map(([n,pp])=>pp.content.map(l=>l.text.slice(0,20)))});
+ console.log(JSON.stringify(r));
+ ok(r.slice(0,3).every(x=>!x.some(t=>t.startsWith("Ind AS 8"))),"a chapter header repeated on 3 pages is left out");
+ ok(r[3].some(t=>t.startsWith("Ind AS 16")),"a header seen on only 2 pages is kept (could be real text)");
+ ok(r.every(x=>x.some(t=>/^(Question|Solution)/.test(t))),"question/answer starts at the top of a page are never dropped");
+ ok(r.every(x=>!x.some(t=>t.startsWith("Page "))),"a footer with a changing page number is left out");
+ await b.close()})();

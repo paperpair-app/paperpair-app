@@ -4075,11 +4075,19 @@ function aiBoxes(seq,i,j){const by=new Map();for(let k=i;k<=j;k++){const o=seq[k
   return[...by].map(([n,ls])=>{const x0=Math.min(...ls.map(l=>l.x0)),x1=Math.max(...ls.map(l=>l.x1)),y0=Math.min(...ls.map(l=>l.y0)),y1=Math.max(...ls.map(l=>l.y1)),x=clamp(x0-.008,0,1),y=clamp(y0-.003,0,1);
     return{page:n,x:r4(x),y:r4(y),w:r4(Math.min(.98,x1+.008)-x),h:r4(Math.max(.012,y1+.003-y))}})}
 const aiNorm=s=>String(s||"").toUpperCase().replace(/\b(QUESTION|QUES|ILLUSTRATION|ILLUS|ANSWER|ANS|SOLUTION|SOL|PQ|TYK|NO)\b\.?/g,"").replace(/[\s.:#]+/g,"").replace(/^Q(?=\d)/,"").replace(/^A(?=\d)/,"");
+
+// running headers/footers that change per chapter (e.g. "Ind AS 8- Accounting Policies…" on each page of that chapter) are not caught by the
+// usual repeat check, which needs ~40% of pages; drop a top/bottom line whose text repeats on 3+ pages, unless it looks like a question/answer start
+const AI_KEEP=/^\s*(q(uestion)?s?\b|q\.\s*\d|ques|ans(wer)?s?\b|sol(ution)?s?\b|illus|test your|practical|example|case\s*(study|scenario)|mcq|working|note\b|w\.?n\.?)/i;
+function aiDropHeaders(P){const key=t=>t.toLowerCase().replace(/[\d.\-–—:|()]+/g," ").replace(/\s+/g," ").trim(),edge=l=>l.y0<.14||l.y1>.9,cand=l=>{const t=l.text.trim();return edge(l)&&t.length>=12&&!AI_KEEP.test(t)&&key(t).length>=8};
+  const cnt=new Map();for(const [,pp] of P){const seen=new Set();for(const l of pp.content)if(cand(l)){const k=key(l.text);if(!seen.has(k)){seen.add(k);cnt.set(k,(cnt.get(k)||0)+1)}}}
+  let drop=0;const ex=new Set();for(const [,pp] of P)pp.content=pp.content.filter(l=>{if(cand(l)&&(cnt.get(key(l.text))||0)>=3){drop++;if(ex.size<4)ex.add(l.text.trim().slice(0,60));return false}return true});
+  if(drop)LOG.add("left out "+drop+" running header/footer lines, e.g. "+[...ex].map(x=>"“"+x+"”").join(", "));return drop}
 async function aiFind(qf,qt,af,at,prog,opt){const a=AI.get(),key=a.key;if(!key)throw Object.assign(new Error("No AI key saved."),{code:"nokey"});
   const pages=[];const add=(f,t)=>{for(let n=f;n<=t;n++)if(!pages.includes(n))pages.push(n)};add(qf,qt);if(af)add(af,at);pages.sort((x,y)=>x-y);
   LOG.sec("AI FIND · Gemini · pages "+pages[0]+"–"+pages.at(-1));
   prog("Checking your AI key",.02);const model=await gemModel(key);LOG.add("model "+model);
-  const P=await readPages(pages,(m,f)=>prog(m,.03+f*.15),true);
+  const P=await readPages(pages,(m,f)=>prog(m,.03+f*.15),true);aiDropHeaders(P);
   const seq=[],idOf=new Map(),chunks=[];let cur=[],len=0;
   for(const n of pages){const pp=P.get(n);if(!pp)continue;const ph=(S.pages[n-1]&&S.pages[n-1].h)||800;
     pp.content.slice().sort((x,y)=>x.y0-y.y0).forEach((l,i)=>{const tx=l.text.replace(/\s+/g," ").trim();if(!tx)return;const id=n+"."+(i+1);idOf.set(id,seq.length);seq.push({n,l,tx,id});
