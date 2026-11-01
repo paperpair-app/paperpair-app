@@ -1,0 +1,33 @@
+const {launch,ok}=require('./base');
+(async()=>{const {b,p,errs}=await launch();p.setDefaultTimeout(60000);
+ await p.setInputFiles('#fileIn',['/tmp/e2e/pdfs/Ind_AS_7.pdf']);await p.waitForSelector("#vMark:not([hidden]) canvas.pc");
+ await p.evaluate(()=>{S.snap=false;goPage(8);setMode("q")});await p.waitForTimeout(800);
+ let bb=await p.$eval("#ov",e=>{const r=e.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height}});
+ await p.mouse.move(bb.x+bb.w*.1,bb.y+bb.h*.8);await p.mouse.down();
+ await p.mouse.move(bb.x+bb.w*.9,bb.y+bb.h*.95,{steps:5});await p.mouse.move(bb.x+bb.w*.9,bb.y+bb.h+6,{steps:3});
+ ok(await p.$("#spillTip")!==null,"a 'keep holding' tip shows at the bottom");
+ await p.waitForTimeout(800);ok(await p.evaluate(()=>S.cur)===9,"page turned to 9 while holding");
+ bb=await p.$eval("#ov",e=>{const r=e.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height}});
+ await p.mouse.move(bb.x+bb.w*.9,bb.y+bb.h*.3,{steps:5});await p.mouse.up();await p.waitForTimeout(300);
+ const r=await p.evaluate(()=>{const pr=S.data.pairs.at(-1);return pr.q.map(b=>({page:b.page,y:b.y,h:b.h}))});console.log(JSON.stringify(r));
+ ok(r.length===2&&r[0].page===8&&Math.abs(r[0].y+r[0].h-1)<.01&&r[1].page===9&&r[1].y===0&&Math.abs(r[1].h-.3)<.03,"one question with parts on p.8 (to the bottom) and p.9 (top to where you let go)");
+ // resize: the box on p.9 ... draw a fresh answer on p.10, then drag its bottom handle past the page end
+ await p.evaluate(()=>{goPage(10);setMode("a")});await p.waitForTimeout(600);
+ bb=await p.$eval("#ov",e=>{const r=e.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height}});
+ await p.mouse.move(bb.x+bb.w*.1,bb.y+bb.h*.5);await p.mouse.down();await p.mouse.move(bb.x+bb.w*.9,bb.y+bb.h*.7,{steps:4});await p.mouse.up();await p.waitForTimeout(300);
+ const aid=await p.evaluate(()=>{const pr=S.data.pairs.at(-1);return pr.a[0].id});
+ await p.evaluate(id=>{setMode("v");S.selId=id;refreshAll()},aid);await p.waitForTimeout(300);
+ const hb=await p.$eval('.reg[data-id="'+aid+'"] .h[data-h="s"]',e=>{const r=e.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}});
+ await p.mouse.move(hb.x,hb.y);await p.mouse.down();await p.mouse.move(hb.x,bb.y+bb.h+6,{steps:6});await p.waitForTimeout(800);
+ ok(await p.evaluate(()=>S.cur)===11,"resizing past the bottom turns to page 11");
+ bb=await p.$eval("#ov",e=>{const r=e.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height}});
+ await p.mouse.move(hb.x,bb.y+bb.h*.4,{steps:4});await p.mouse.up();await p.waitForTimeout(300);
+ const a=await p.evaluate(()=>S.data.pairs.at(-1).a.map(b=>({page:b.page,y:b.y,h:b.h})));console.log(JSON.stringify(a));
+ ok(a.length===2&&a[0].page===10&&Math.abs(a[0].y+a[0].h-1)<.01&&a[1].page===11&&Math.abs(a[1].h-.4)<.04,"the answer now continues onto p.11");
+ await p.evaluate(()=>undo());const u=await p.evaluate(()=>S.data.pairs.at(-1).a.length);ok(u===1,"undo removes the continuation");
+ // short drag near the bottom that does not hold: no turn
+ await p.evaluate(()=>{goPage(12);setMode("q")});await p.waitForTimeout(500);
+ bb=await p.$eval("#ov",e=>{const r=e.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height}});
+ await p.mouse.move(bb.x+bb.w*.1,bb.y+bb.h*.6);await p.mouse.down();await p.mouse.move(bb.x+bb.w*.8,bb.y+bb.h+4,{steps:3});await p.waitForTimeout(150);await p.mouse.move(bb.x+bb.w*.8,bb.y+bb.h*.9,{steps:2});await p.mouse.up();
+ ok(await p.evaluate(()=>S.cur)===12,"a quick pass over the bottom does not turn the page");
+ const e=errs.filter(x=>!/Failed to load resource/.test(x));ok(!e.length,"no page errors "+e.join("|").slice(0,300));await b.close()})();

@@ -1,0 +1,13 @@
+const {launch,ok}=require('./base');
+(async()=>{const {b,p,errs}=await launch();p.setDefaultTimeout(60000);
+ await p.setInputFiles('#fileIn',['/tmp/e2e/pdfs/Ind_AS_7.pdf']);await p.waitForSelector("#vMark:not([hidden]) canvas.pc");
+ await p.evaluate(()=>{S.snap=false;S.sugg=[{id:"s1",num:7,label:"7",q:[{page:10,x:.1,y:.5,w:.8,h:.2}],a:[]}];S.suggInfo={orphans:0,missing:[]};S.sgFocus="s1";S.sgSel={id:"s1",side:"q",j:0};setMode("v");goPage(10)});await p.waitForTimeout(800);
+ const hb=await p.$eval('.sug[data-sg="s1"] [data-h="s"]',e=>{const r=e.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}}).catch(()=>null);
+ ok(hb,"suggestion shows a bottom handle");
+ let bb=await p.$eval("#ov",e=>{const r=e.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height}});
+ await p.mouse.move(hb.x,hb.y);await p.mouse.down();await p.mouse.move(hb.x,bb.y+bb.h+6,{steps:6});await p.waitForTimeout(800);
+ ok(await p.evaluate(()=>S.cur)===11,"turned to p.11");
+ await p.mouse.move(hb.x,bb.y+bb.h*.25,{steps:3});await p.mouse.up();await p.waitForTimeout(300);
+ const q=await p.evaluate(()=>S.sugg[0].q.map(b=>[b.page,b.y,b.h]));console.log(JSON.stringify(q));
+ ok(q.length===2&&q[1][0]===11&&q[0][1]+q[0][2]>.99,"the suggestion continues onto p.11 and keeps its link");
+ const e=errs.filter(x=>!/Failed to load resource/.test(x));ok(!e.length,"no page errors "+e.join("|").slice(0,300));await b.close()})();

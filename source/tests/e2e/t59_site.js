@@ -1,0 +1,10 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const c=await b.newContext({viewport:{width:1400,height:900}});const p=await c.newPage();const errs=[],bad=[];
+ p.on('pageerror',e=>errs.push(e.message));p.on('requestfailed',r=>bad.push(r.url()));p.on('response',r=>{if(r.status()>=400)bad.push(r.status()+" "+r.url())});
+ await p.goto('http://localhost:8765/index.html');await p.waitForTimeout(2500);
+ console.log("pdfjs",await p.evaluate(()=>!!window.pdfjsLib&&pdfjsLib.version),"JSZip",await p.evaluate(()=>!!window.JSZip),"worker",await p.evaluate(()=>pdfjsLib.GlobalWorkerOptions.workerSrc));
+ await p.setInputFiles('#fileIn',['/tmp/e2e/pdfs/Ind_AS_7.pdf']);
+ await p.waitForSelector("#vMark:not([hidden]) canvas.pc",{timeout:60000});console.log("PDF opened and rendered");
+ console.log("pdf-lib",await p.evaluate(async()=>!!(await loadPdfLib())));
+ await p.waitForTimeout(1500);console.log("sw",await p.evaluate(async()=>!!(await navigator.serviceWorker.getRegistration())));
+ console.log("errors",JSON.stringify(errs));console.log("bad",JSON.stringify(bad.filter(x=>!/fonts|cdnjs/.test(x))));await b.close()})();
