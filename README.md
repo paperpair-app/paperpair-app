@@ -8,3 +8,9 @@ Pairs questions and answers from ICAI-style PDFs, with a library, repeats, revis
 - Personal study PDFs are not stored in this repo.
 
 Live app: https://paperpair-app.github.io/paperpair-app/
+
+## PDF Pair
+
+The older **PDF Pair** app is in the `pdfpair/` folder (source in `pdfpair/src/`, build with `python3 pdfpair/tools/build.py`).
+
+Live app: https://paperpair-app.github.io/paperpair-app/pdfpair/
